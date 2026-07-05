@@ -23,8 +23,20 @@ model:
   test_size: 0.2
   random_state: 42
   calibration_cv: 3
+
+  # Random Forest
   n_estimators_rf: 400
   max_depth_rf: 8
+
+  # XGBoost
   n_estimators_xgb: 500
   max_depth_xgb: 5
   learning_rate_xgb: 0.03
+  subsample_xgb: 0.9
+  colsample_bytree_xgb: 0.9
+
+  # LightGBM
+  n_estimators_lgbm: 500
+  max_depth_lgbm: -1
+  learning_rate_lgbm: 0.03
+  num_leaves_lgbm: 31
