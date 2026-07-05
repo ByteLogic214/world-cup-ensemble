@@ -1,0 +1,31 @@
+name: "world-cup-ensemble"
+  target: "match_result"   # H, D, A
+
+api_football:
+  base_url: "https://v3.football.api-sports.io"
+
+odds_api:
+  base_url: "https://api.the-odds-api.com/v4"
+
+data:
+  season_years_back: 4
+  rolling_windows: [3, 5, 10]
+  save_raw_dir: "data/raw"
+  save_processed_dir: "data/processed"
+  save_models_dir: "data/models"
+
+competition:
+  # Ajusta IDs reales de torneos/fixtures según tu uso
+  world_cup_league_id: 1
+  include_friendlies: false
+  use_neutral_flag: true
+
+model:
+  test_size: 0.2
+  random_state: 42
+  calibration_cv: 3
+  n_estimators_rf: 400
+  max_depth_rf: 8
+  n_estimators_xgb: 500
+  max_depth_xgb: 5
+  learning_rate_xgb: 0.03
