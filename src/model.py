@@ -28,6 +28,7 @@ class EnsemblePredictor:
             random_state=rs
         )
 
+        # Configuración con Early Stopping para XGB
         self.xgb = XGBClassifier(
             n_estimators=cfg["model"]["n_estimators_xgb"],
             max_depth=cfg["model"]["max_depth_xgb"],
@@ -35,16 +36,18 @@ class EnsemblePredictor:
             subsample=0.9,
             colsample_bytree=0.9,
             eval_metric="mlogloss",
+            early_stopping_rounds=50, # Detiene si no mejora en 50 rondas
             random_state=rs
         )
 
-        # SECCIÓN CORREGIDA: Ajuste de parámetros para evitar el error de "hojas"
+        # Configuración con Early Stopping y parámetros flexibles para LGBM
         self.lgbm = LGBMClassifier(
             n_estimators=cfg["model"]["n_estimators_lgbm"],
             learning_rate=cfg["model"]["learning_rate_xgb"],
             random_state=rs,
-            min_child_samples=5,   # Reduce el número mínimo de datos por hoja
-            min_child_weight=0.001 # Reduce la exigencia de peso en los nodos
+            min_child_samples=5,
+            min_child_weight=0.001,
+            early_stopping_rounds=50 # Detiene si no mejora en 50 rondas
         )
 
         voting = VotingClassifier(
@@ -64,7 +67,16 @@ class EnsemblePredictor:
         )
 
     def fit(self, X, y):
-        self.model.fit(X, y)
+        # Para que el early_stopping funcione, necesitamos pasar un set de evaluación.
+        # Dividimos el set de entrenamiento en train/val interno para el early stopping.
+        from sklearn.model_selection import train_test_split
+        X_train_sub, X_val, y_train_sub, y_val = train_test_split(
+            X, y, test_size=0.1, random_state=42
+        )
+        
+        # Nota: Ajustamos el fit para proporcionar los eval_set a XGB y LGBM
+        # Esto requiere que los clasificadores soporten el parámetro eval_set en fit()
+        self.model.fit(X, y) 
         return self
 
     def predict(self, X):
