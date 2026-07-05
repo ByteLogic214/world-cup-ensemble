@@ -38,10 +38,13 @@ class EnsemblePredictor:
             random_state=rs
         )
 
+        # SECCIÓN CORREGIDA: Ajuste de parámetros para evitar el error de "hojas"
         self.lgbm = LGBMClassifier(
             n_estimators=cfg["model"]["n_estimators_lgbm"],
             learning_rate=cfg["model"]["learning_rate_xgb"],
-            random_state=rs
+            random_state=rs,
+            min_child_samples=5,   # Reduce el número mínimo de datos por hoja
+            min_child_weight=0.001 # Reduce la exigencia de peso en los nodos
         )
 
         voting = VotingClassifier(
