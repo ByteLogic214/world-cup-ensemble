@@ -1,42 +1,28 @@
-name: "world-cup-ensemble"
-target: "match_result"   # H, D, A
-
+# config/config.yaml
 api_football:
   base_url: "https://v3.football.api-sports.io"
 
 odds_api:
   base_url: "https://api.the-odds-api.com/v4"
 
+competition:
+  world_cup_league_id: 1
+
 data:
-  season_years_back: 4
+  season_years_back: 5
   rolling_windows: [3, 5, 10]
   save_raw_dir: "data/raw"
   save_processed_dir: "data/processed"
-  save_models_dir: "data/models"
-
-competition:
-  world_cup_league_id: 1
-  include_friendlies: false
-  use_neutral_flag: true
+  save_models_dir: "models"
 
 model:
   test_size: 0.2
   random_state: 42
-  calibration_cv: 3
-
-  # Random Forest
-  n_estimators_rf: 400
-  max_depth_rf: 8
-
-  # XGBoost
-  n_estimators_xgb: 500
-  max_depth_xgb: 5
-  learning_rate_xgb: 0.03
-  subsample_xgb: 0.9
-  colsample_bytree_xgb: 0.9
-
-  # LightGBM
-  n_estimators_lgbm: 500
-  max_depth_lgbm: -1
-  learning_rate_lgbm: 0.03
-  num_leaves_lgbm: 31
+  n_estimators_rf: 200
+  max_depth_rf: 10
+  n_estimators_xgb: 300
+  max_depth_xgb: 6
+  learning_rate_xgb: 0.05
+  n_estimators_lgbm: 300
+  learning_rate_lgbm: 0.05
+  calibration_cv: 5
