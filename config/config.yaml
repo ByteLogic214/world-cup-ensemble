@@ -1,5 +1,5 @@
 name: "world-cup-ensemble"
-  target: "match_result"   # H, D, A
+target: "match_result"   # H, D, A
 
 api_football:
   base_url: "https://v3.football.api-sports.io"
@@ -15,7 +15,6 @@ data:
   save_models_dir: "data/models"
 
 competition:
-  # Ajusta IDs reales de torneos/fixtures según tu uso
   world_cup_league_id: 1
   include_friendlies: false
   use_neutral_flag: true
