@@ -9,7 +9,7 @@ odds_api:
   base_url: "https://api.the-odds-api.com/v4"
 
 data:
-  season_years_back: 4
+  season_years_back: 12
   rolling_windows: [3, 5, 10]
   save_raw_dir: "data/raw"
   save_processed_dir: "data/processed"
