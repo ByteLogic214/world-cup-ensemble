@@ -16,9 +16,11 @@ data:
   save_models_dir: "data/models"
 
 competition:
-  world_cup_league_id: 1
+  # Cambiamos el ID único por una lista de IDs de las ligas más importantes
+  league_ids: [39, 140, 135, 78, 61, 2, 1] # Premier, LaLiga, Serie A, Bundesliga, Ligue 1, Champions, World Cup
   include_friendlies: false
   use_neutral_flag: true
+
 
 model:
   test_size: 0.2
