@@ -1,27 +1,14 @@
-name: Gemini Elite Football Analytics Reviewer
+name: Gemini Global Repository Audit & Top Leagues Adaptation
 
 on:
   push:
     branches:
       - main
-    paths:
-      - 'src/**'
-      - 'app.py'
-      - 'requirements.txt'
-  pull_request:
-    types: [opened, synchronize]
-    paths:
-      - 'src/**'
-      - 'app.py'
-      - 'requirements.txt'
+  workflow_dispatch: # Permite ejecutarlo manualmente desde la pestaña "Actions"
 
 jobs:
-  lint_and_review:
+  global_audit:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -30,52 +17,67 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
-      - name: Install Linting Tools
+      - name: Install Dependencies
         run: |
-          pip install black flake8
+          pip install google-generativeai
 
-      - name: Run Black (Auto-format)
+      - name: Run Global Gemini Audit
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        shell: python
         run: |
-          black src/ app.py --line-length 88
+          import os
+          import google.generativeai as genai
 
-      - name: Run Flake8 (Syntax & Style Check)
-        run: |
-          # stop the build if there are Python syntax errors or undefined names
-          flake8 src/ app.py --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings.
-          flake8 src/ app.py --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+          # Configurar la API de Gemini
+          genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+          
+          # Archivos clave a escanear del repositorio
+          files_to_scan = [
+              "src/features.py",
+              "src/model.py",
+              "src/api_clients.py",
+              "app.py",
+              "requirements.txt"
+          ]
+          
+          repo_context = ""
+          for file_path in files_to_scan:
+              if os.path.exists(file_path):
+                  with open(file_path, "r", encoding="utf-8") as f:
+                      repo_context += f"\n\n=== ARCHIVO: {file_path} ===\n"
+                      repo_context += f.read()
+              else:
+                  repo_context += f"\n\n=== ARCHIVO: {file_path} ===\n(No encontrado en el repositorio)\n"
 
-      - name: Commit Linting Changes (Optional)
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "style: auto-format python code with black"
-          file_pattern: 'src/*.py app.py'
-        continue-on-error: true
+          # System Prompt robusto enfocado en la transición a Ligas Top de Fútbol
+          prompt = f"""
+          Actúa como un Director de Ciencia de Datos y MLOps especializado en Analítica de Fútbol Avanzada (Smart Betting & Performance Tracking para ligas europeas: Premier League, LaLiga, Serie A, Bundesliga, Ligue 1).
+          
+          He cargado el código completo de mi repositorio que inicialmente fue diseñado para un Mundial (un torneo corto de un mes). Necesito que analices TODO el ecosistema de archivos adjunto abajo para encontrar errores críticos, cuellos de botella de rendimiento y me indiques exactamente qué modificar línea por línea para adaptarlo de forma masiva a todas las Ligas Top de 38 jornadas.
+          
+          Analiza y provee refactorizaciones específicas para:
+          1. ERRORES DE LOGÍSTICA DE DATOS (src/api_clients.py): Encuentra fallas en el consumo de API-Football o The Odds API. Al escanear ligas top, el volumen de partidos se multiplica por 50. ¿Maneja paginación, control de cuotas y almacenamiento eficiente en caché local ('data/raw/')?
+          
+          2. INGENIERÍA DE VARIABLES RECURRENTES (src/features.py): ¿Cómo cambiamos el código para calcular ventanas móviles de rendimiento (Rolling Windows de 3, 5 y 10 partidos)? Evalúa si el código considera el factor localía extendido, días de descanso acumulados por competiciones UEFA (Champions/Europa League) y rachas de goles.
+          
+          3. VALIDACIÓN Y CALIBRACIÓN DEL ENSEMBLE (src/model.py): El Mundial usa una fase de grupos corta, pero las ligas tienen 38 jornadas donde el 'Empate' y las sorpresas de fin de temporada (equipos que pelean descenso vs campeones matemáticos) varían. Audita si calcula LogLoss y Brier Score. Corrige el Soft Voting para usar calibración probabilística (CalibratedClassifierCV).
+          
+          4. DEPENDENCIAS (requirements.txt): Asegura que XGBoost y LightGBM estén optimizados.
+          
+          A continuación tienes el código fuente de mi repositorio:
+          {repo_context}
+          
+          Devuelve tu reporte detallado completamente en español. Si encuentras un archivo con errores severos o código faltante, escribe el bloque de código corregido que debería reemplazarlo.
+          """
 
-      - name: Gemini Code Review
-        uses: sshnaidm/gemini-code-review-action@v2
-        with:
-          gemini-key: ${{ secrets.GEMINI_API_KEY }}
-          model: 'gemini-2.5-pro'
-          prompt: |
-            Actúa como un Científico de Datos Senior y MLOps experto en analítica de fútbol europeo y mercados de apuestas (1X2).
-            Analiza de forma exhaustiva los cambios introducidos en este archivo o Pull Request del proyecto 'world-cup-ensemble'. Tu misión es asegurar la transición del modelo desde un torneo corto (Mundial) hacia un rendimiento predictivo óptimo en Ligas Top estables (Premier League, LaLiga, Serie A, etc.).
-            
-            El código ya ha sido formateado por 'Black', así que ignora problemas menores de estilo. Audita críticamente la lógica basándote en estos pilares:
-            
-            1. RENDIMIENTO DE DEPENDENCIAS (requirements.txt):
-               - Verifica que las versiones de XGBoost y LightGBM estén especificadas y optimizadas para aprovechar el entrenamiento rápido en CPUs paraleles.
-            
-            2. EVALUACIÓN Y CALIBRACIÓN DE PROBABILIDADES (src/model.py):
-               - Exige e inspecciona la implementación del cálculo de LogLoss (Pérdida Logarítmica) y Brier Score para las probabilidades del Soft Voting. 
-               - Asegúrate de usar CalibratedClassifierCV para ajustar las curvas de probabilidad. En ligas largas, las sorpresas ocurren y las predicciones no calibradas destruyen el bankroll de apuestas.
-            
-            3. INGENIERÍA DE VARIABLES PARA LIGAS LARGAS (src/features.py):
-               - Revisa si las variables capturan ventajas de localía acumuladas de la temporada, rachas mediante medias móviles (Rolling Windows de 5 partidos) y fatiga de plantilla por competiciones europeas intersemanales.
-            
-            4. LÍMITES DE API Y CONSUMO (src/api_clients.py):
-               - Valida que las llamadas a API-Football y The Odds API manejen reintentos automáticos para mitigar bloqueos al descargar volúmenes masivos de datos correspondientes a 38 jornadas simultáneas.
-            
-            Por favor, escribe tus sugerencias y advertencias directamente en español en el Pull Request o como salida del log del sistema.
+          # Llamar al modelo de última generación
+          model = genai.GenerativeModel("gemini-2.5-pro")
+          response = model.generate_content(prompt)
+          
+          # Imprimir el resultado directamente en la consola de GitHub Actions
+          print("\n=======================================================")
+          print("      REPORTE DE AUDITORÍA GLOBAL DE GEMINI AI         ")
+          print("=======================================================")
+          print(response.text)
