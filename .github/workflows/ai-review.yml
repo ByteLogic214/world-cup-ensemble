@@ -1,0 +1,31 @@
+name: Gemini Code Reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review_code:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Gemini Code Review
+        uses: google-gemini/gemini-github-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        with:
+          model: 'gemini-2.5-pro'
+          prompt: |
+            Actúa como un Ingeniero de Software Senior especializado en analítica de fútbol para ligas top (Premier League, LaLiga, etc.).
+            Revisa este código enfocado en:
+            1. Eficiencia algorítmica al procesar grandes volúmenes de eventos en tiempo real (Opta, StatsBomb).
+            2. Consistencia y limpieza de datos métricos (xG, asistencias esperadas, mapas de calor).
+            3. Seguridad y optimización de consultas si maneja bases de datos.
+            Escribe tus sugerencias directamente en español en el Pull Request.
