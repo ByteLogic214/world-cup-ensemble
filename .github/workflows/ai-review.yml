@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: # Permite ejecutarlo manualmente desde la pestaña "Actions"
+  workflow_dispatch: # Permite que lo actives manualmente cuando quieras desde la pestaña Actions
 
 jobs:
   global_audit:
@@ -18,9 +18,9 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Dependencies
+      - name: Install Official Modern SDK
         run: |
-          pip install google-generativeai
+          pip install google-genai
 
       - name: Run Global Gemini Audit
         env:
@@ -28,12 +28,9 @@ jobs:
         shell: python
         run: |
           import os
-          import google.generativeai as genai
+          from google import genai
 
-          # Configurar la API de Gemini
-          genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-          
-          # Archivos clave a escanear del repositorio
+          # 1. Recopilar de forma masiva los archivos clave del repositorio
           files_to_scan = [
               "src/features.py",
               "src/model.py",
@@ -49,35 +46,43 @@ jobs:
                       repo_context += f"\n\n=== ARCHIVO: {file_path} ===\n"
                       repo_context += f.read()
               else:
-                  repo_context += f"\n\n=== ARCHIVO: {file_path} ===\n(No encontrado en el repositorio)\n"
+                  repo_context += f"\n\n=== ARCHIVO: {file_path} ===\n(Archivo no encontrado en el repositorio actual)\n"
 
-          # System Prompt robusto enfocado en la transición a Ligas Top de Fútbol
+          # 2. Inicializar cliente con el nuevo SDK de Google
+          # Detecta automáticamente de manera segura la variable de entorno GEMINI_API_KEY
+          client = genai.Client()
+
+          # 3. Diseñar el Prompt Técnico adaptado a Ligas Top de Fútbol
           prompt = f"""
-          Actúa como un Director de Ciencia de Datos y MLOps especializado en Analítica de Fútbol Avanzada (Smart Betting & Performance Tracking para ligas europeas: Premier League, LaLiga, Serie A, Bundesliga, Ligue 1).
+          Actúa como un Director de Ciencia de Datos y MLOps experto en Analítica de Fútbol Avanzada (Modelos de apuestas 1X2 y rendimiento deportivo en Premier League, LaLiga, Serie A, Bundesliga).
           
           He cargado el código completo de mi repositorio que inicialmente fue diseñado para un Mundial (un torneo corto de un mes). Necesito que analices TODO el ecosistema de archivos adjunto abajo para encontrar errores críticos, cuellos de botella de rendimiento y me indiques exactamente qué modificar línea por línea para adaptarlo de forma masiva a todas las Ligas Top de 38 jornadas.
           
-          Analiza y provee refactorizaciones específicas para:
-          1. ERRORES DE LOGÍSTICA DE DATOS (src/api_clients.py): Encuentra fallas en el consumo de API-Football o The Odds API. Al escanear ligas top, el volumen de partidos se multiplica por 50. ¿Maneja paginación, control de cuotas y almacenamiento eficiente en caché local ('data/raw/')?
+          Genera un reporte detallado y refactorizaciones de código específicas en español para:
+          1. LOGÍSTICA DE DATOS (src/api_clients.py): El volumen de partidos de ligas regulares se multiplica exponencialmente. Corrige el código para usar paginación, control estricto de cuotas en API-Football / The Odds API y almacenamiento eficiente local en 'data/raw/'.
           
-          2. INGENIERÍA DE VARIABLES RECURRENTES (src/features.py): ¿Cómo cambiamos el código para calcular ventanas móviles de rendimiento (Rolling Windows de 3, 5 y 10 partidos)? Evalúa si el código considera el factor localía extendido, días de descanso acumulados por competiciones UEFA (Champions/Europa League) y rachas de goles.
+          2. INGENIERÍA DE VARIABLES (src/features.py): Explica y diseña cómo cambiar el código para calcular ventanas móviles de rendimiento (Rolling Windows de 3, 5 y 10 partidos), factor localía regular de la temporada actual y fatiga de plantilla por competiciones de copa intersemanales.
           
-          3. VALIDACIÓN Y CALIBRACIÓN DEL ENSEMBLE (src/model.py): El Mundial usa una fase de grupos corta, pero las ligas tienen 38 jornadas donde el 'Empate' y las sorpresas de fin de temporada (equipos que pelean descenso vs campeones matemáticos) varían. Audita si calcula LogLoss y Brier Score. Corrige el Soft Voting para usar calibración probabilística (CalibratedClassifierCV).
+          3. CALIBRACIÓN Y MÉTRICAS (src/model.py): Las ligas largas tienen dinámicas estables de empates y sorpresas de fin de temporada. Audita si calcula LogLoss y Brier Score. Corrige el Soft Voting del Ensemble para usar CalibratedClassifierCV.
           
-          4. DEPENDENCIAS (requirements.txt): Asegura que XGBoost y LightGBM estén optimizados.
+          4. DEPENDENCIAS (requirements.txt): Asegura versiones óptimas y estables de XGBoost, LightGBM y scikit-learn.
           
           A continuación tienes el código fuente de mi repositorio:
           {repo_context}
-          
-          Devuelve tu reporte detallado completamente en español. Si encuentras un archivo con errores severos o código faltante, escribe el bloque de código corregido que debería reemplazarlo.
           """
 
-          # Llamar al modelo de última generación
-          model = genai.GenerativeModel("gemini-2.5-pro")
-          response = model.generate_content(prompt)
-          
-          # Imprimir el resultado directamente en la consola de GitHub Actions
-          print("\n=======================================================")
-          print("      REPORTE DE AUDITORÍA GLOBAL DE GEMINI AI         ")
-          print("=======================================================")
-          print(response.text)
+          # 4. Llamada oficial a la Interactions API con Gemini
+          try:
+              interaction = client.interactions.create(
+                  model="gemini-3.5-flash",
+                  input=prompt
+              )
+              
+              print("\n=======================================================")
+              print("      REPORTE DE AUDITORÍA GLOBAL DE GEMINI AI         ")
+              print("=======================================================")
+              print(interaction.output_text)
+              
+          except Exception as e:
+              print(f"Error al invocar la API de Gemini: {str(e)}")
+              exit(1)
