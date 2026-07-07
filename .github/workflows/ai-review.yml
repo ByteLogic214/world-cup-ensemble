@@ -1,31 +1,81 @@
-name: Gemini Code Reviewer
+name: Gemini Elite Football Analytics Reviewer
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'app.py'
+      - 'requirements.txt'
   pull_request:
     types: [opened, synchronize]
+    paths:
+      - 'src/**'
+      - 'app.py'
+      - 'requirements.txt'
 
 jobs:
-  review_code:
+  lint_and_review:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Gemini Code Review
-        uses: google-gemini/gemini-github-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Linting Tools
+        run: |
+          pip install black flake8
+
+      - name: Run Black (Auto-format)
+        run: |
+          black src/ app.py --line-length 88
+
+      - name: Run Flake8 (Syntax & Style Check)
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 src/ app.py --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings.
+          flake8 src/ app.py --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+
+      - name: Commit Linting Changes (Optional)
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto-format python code with black"
+          file_pattern: 'src/*.py app.py'
+        continue-on-error: true
+
+      - name: Gemini Code Review
+        uses: sshnaidm/gemini-code-review-action@v2
+        with:
+          gemini-key: ${{ secrets.GEMINI_API_KEY }}
           model: 'gemini-2.5-pro'
           prompt: |
-            Actúa como un Ingeniero de Software Senior especializado en analítica de fútbol para ligas top (Premier League, LaLiga, etc.).
-            Revisa este código enfocado en:
-            1. Eficiencia algorítmica al procesar grandes volúmenes de eventos en tiempo real (Opta, StatsBomb).
-            2. Consistencia y limpieza de datos métricos (xG, asistencias esperadas, mapas de calor).
-            3. Seguridad y optimización de consultas si maneja bases de datos.
-            Escribe tus sugerencias directamente en español en el Pull Request.
+            Actúa como un Científico de Datos Senior y MLOps experto en analítica de fútbol europeo y mercados de apuestas (1X2).
+            Analiza de forma exhaustiva los cambios introducidos en este archivo o Pull Request del proyecto 'world-cup-ensemble'. Tu misión es asegurar la transición del modelo desde un torneo corto (Mundial) hacia un rendimiento predictivo óptimo en Ligas Top estables (Premier League, LaLiga, Serie A, etc.).
+            
+            El código ya ha sido formateado por 'Black', así que ignora problemas menores de estilo. Audita críticamente la lógica basándote en estos pilares:
+            
+            1. RENDIMIENTO DE DEPENDENCIAS (requirements.txt):
+               - Verifica que las versiones de XGBoost y LightGBM estén especificadas y optimizadas para aprovechar el entrenamiento rápido en CPUs paraleles.
+            
+            2. EVALUACIÓN Y CALIBRACIÓN DE PROBABILIDADES (src/model.py):
+               - Exige e inspecciona la implementación del cálculo de LogLoss (Pérdida Logarítmica) y Brier Score para las probabilidades del Soft Voting. 
+               - Asegúrate de usar CalibratedClassifierCV para ajustar las curvas de probabilidad. En ligas largas, las sorpresas ocurren y las predicciones no calibradas destruyen el bankroll de apuestas.
+            
+            3. INGENIERÍA DE VARIABLES PARA LIGAS LARGAS (src/features.py):
+               - Revisa si las variables capturan ventajas de localía acumuladas de la temporada, rachas mediante medias móviles (Rolling Windows de 5 partidos) y fatiga de plantilla por competiciones europeas intersemanales.
+            
+            4. LÍMITES DE API Y CONSUMO (src/api_clients.py):
+               - Valida que las llamadas a API-Football y The Odds API manejen reintentos automáticos para mitigar bloqueos al descargar volúmenes masivos de datos correspondientes a 38 jornadas simultáneas.
+            
+            Por favor, escribe tus sugerencias y advertencias directamente en español en el Pull Request o como salida del log del sistema.
